@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta,timezone
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from ..models import schemas
 
@@ -12,20 +12,52 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def verify_token(token,credentials_exception):
+def verify_token(token, credentials_exception):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub") 
+        email = payload.get("sub")
         if email is None:
             raise credentials_exception
         token_data = schemas.TokenData(email=email)
     except JWTError:
         raise credentials_exception
-    
+
     return token_data
+
+
+
+
+
+# email verification
+
+def create_email_verification_token(email: str, expires_delta: timedelta = timedelta(minutes=30)):
+    """
+    Creates a JWT token specifically for email verification.
+    """
+    expire = datetime.utcnow() + expires_delta
+    to_encode = {"sub": email, "exp": expire}
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+
+def verify_email_verification_token(token: str):
+    """
+    Verify the email verification token.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email is None:
+            return None
+        return email
+    except JWTError:
+        return None
